@@ -1,18 +1,27 @@
-FROM centos:7
+# "ported" by Adam Miller <maxamillion@fedoraproject.org> from
+#   https://github.com/fedora-cloud/Fedora-Dockerfiles
+#
+# Originally written for Fedora-Dockerfiles by
+#   scollier <scollier@redhat.com>
+
+FROM centos:centos6
 MAINTAINER The CentOS Project <cloud-ops@centos.org>
-LABEL Vendor="CentOS" \
-      License=GPLv2 \
-      Version=2.4.6-40
 
 
-RUN yum -y --setopt=tsflags=nodocs update && \
-    yum -y --setopt=tsflags=nodocs install httpd && \
-    yum clean all
+RUN yum -y update; yum clean all
+RUN yum -y install epel-release; yum clean all
+RUN yum -y install mysql-server mysql pwgen supervisor bash-completion psmisc net-tools; yum clean all
 
-EXPOSE 80
+ADD ./start.sh /start.sh
+ADD ./config_mysql.sh /config_mysql.sh
+ADD ./supervisord.conf /etc/supervisord.conf
 
-# Simple startup script to avoid some issues observed with container restart
-ADD run-httpd.sh /run-httpd.sh
-RUN chmod -v +x /run-httpd.sh
+# RUN echo %sudo	ALL=NOPASSWD: ALL >> /etc/sudoers
 
-CMD ["/run-httpd.sh"]
+RUN chmod 755 /start.sh
+RUN chmod 755 /config_mysql.sh
+RUN /config_mysql.sh
+
+EXPOSE 3306
+
+CMD ["/bin/bash", "/start.sh"]
